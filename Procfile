@@ -1,0 +1,1 @@
+web: python modern_case_viewer.py --port=$PORT --host=0.0.0.0
