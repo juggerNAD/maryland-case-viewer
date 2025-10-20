@@ -21,10 +21,11 @@ def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
 
     try:
         if "gcp_service_account" in st.secrets:
-            # Access secrets directly, no deepcopy or assignment
-            creds_dict = st.secrets["gcp_service_account"].copy()
-            # Fix the private key newlines
-            creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+            # Build a new dict from st.secrets (do NOT modify st.secrets)
+            creds_dict = {
+                key: (value.replace("\\n", "\n") if key == "private_key" else value)
+                for key, value in st.secrets["gcp_service_account"].items()
+            }
             st.write("✅ Loaded credentials from Streamlit Secrets")
         else:
             with open("service_account.json", "r") as f:
