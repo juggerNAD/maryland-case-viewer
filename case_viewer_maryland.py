@@ -4,6 +4,7 @@ import datetime
 import re
 import gspread
 from google.oauth2 import service_account
+import json
 
 # ---------- CONFIG ----------
 SHEET_ID = "1GCbpfhxqu8G4jYNn_jRKWdAvvw2wal5w0nsnRFUNNfA"
@@ -12,21 +13,36 @@ ALLOWED_CASE_STATUSES = ["Entered", "Renewed", "Unsatisfied"]
 
 # ---------- UTIL ----------
 def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
-    SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    SCOPE = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive"
+    ]
 
-    # ✅ Load credentials from Streamlit Secrets
-    creds = service_account.Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"], scopes=SCOPE
-    )
+    # ✅ Try Streamlit Secrets first, then local file fallback
+    try:
+        if "gcp_service_account" in st.secrets:
+            creds_dict = st.secrets["gcp_service_account"]
+            st.write("✅ Loaded credentials from Streamlit Secrets")
+        else:
+            with open("service_account.json", "r") as f:
+                creds_dict = json.load(f)
+            st.write("✅ Loaded local service_account.json")
 
-    client = gspread.authorize(creds)
-    sheet = client.open_by_key(sheet_id).worksheet(sheet_name)
-    data = sheet.get_all_values()
-    df = pd.DataFrame(data[1:], columns=data[0])
-    return df
+        creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key(sheet_id).worksheet(sheet_name)
+        data = sheet.get_all_values()
+        df = pd.DataFrame(data[1:], columns=data[0])
+        return df
+
+    except Exception as e:
+        st.error(f"❌ Error loading Google Sheet: {e}")
+        st.stop()
+
 
 def normalize_columns(cols):
     return [c.strip().lower().replace("\n", " ").replace(" ", "_") for c in cols]
+
 
 def parse_amount(s):
     if pd.isna(s):
@@ -36,6 +52,7 @@ def parse_amount(s):
         return float(s)
     except:
         return 0.0
+
 
 def parse_date_flexible(v):
     if pd.isna(v):
@@ -56,6 +73,7 @@ def parse_date_flexible(v):
         return tmp.date()
     except:
         return None
+
 
 def load_and_map():
     df = download_sheet_csv(SHEET_ID, SHEET_NAME)
@@ -80,6 +98,7 @@ def load_and_map():
         if "address" in c:
             mapping["address"] = c
     return df, mapping
+
 
 # ---------- LOAD DATA ----------
 df, mapping = load_and_map()
@@ -131,6 +150,7 @@ end_date = st.sidebar.date_input(
     min_value=datetime.date(2014, 1, 1),
     max_value=datetime.date.today()
 )
+
 
 # ---------- FILTER LOGIC ----------
 def apply_filters(df):
@@ -188,7 +208,9 @@ def apply_filters(df):
 
     # Format entry date
     if "entry_date" in mapping and mapping.get("entry_date") in d_display.columns:
-        d_display[mapping["entry_date"]] = d_display[mapping["entry_date"]].apply(lambda x: parse_date_flexible(x).strftime("%Y-%m-%d") if parse_date_flexible(x) else "")
+        d_display[mapping["entry_date"]] = d_display[mapping["entry_date"]].apply(
+            lambda x: parse_date_flexible(x).strftime("%Y-%m-%d") if parse_date_flexible(x) else ""
+        )
 
     # Format case link
     if "case_link" in mapping and mapping.get("case_link") in d_display.columns:
@@ -197,6 +219,7 @@ def apply_filters(df):
         )
 
     return d_display
+
 
 # ---------- APPLY FILTERS ----------
 if st.sidebar.button("Apply Filters"):
