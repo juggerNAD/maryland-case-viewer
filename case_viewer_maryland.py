@@ -5,16 +5,16 @@ import re
 import gspread
 from google.oauth2 import service_account
 
+# ---------- CONFIG ----------
+SHEET_ID = "1GCbpfhxqu8G4jYNn_jRKWdAvvw2wal5w0nsnRFUNNfA"
+SHEET_NAME = "Sheet1"
+ALLOWED_CASE_STATUSES = ["Entered", "Renewed", "Unsatisfied"]
+
 # ---------- GOOGLE SHEETS SCOPES ----------
 SCOPE = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive"
 ]
-
-# ---------- CONFIG ----------
-SHEET_ID = "1GCbpfhxqu8G4jYNn_jRKWdAvvw2wal5w0nsnRFUNNfA"
-SHEET_NAME = "Sheet1"
-ALLOWED_CASE_STATUSES = ["Entered", "Renewed", "Unsatisfied"]
 
 CASE_TYPES = [
     "Civil - General", "Civil - Foreclosure", "Civil - Contract", "Judgment - Monetary", "Lien / Judgment",
