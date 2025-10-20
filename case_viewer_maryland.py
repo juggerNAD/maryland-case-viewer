@@ -18,10 +18,11 @@ def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
         "https://www.googleapis.com/auth/drive"
     ]
 
+    import copy
+
     try:
         if "gcp_service_account" in st.secrets:
-            creds_dict = st.secrets["gcp_service_account"]
-            # Fix newlines in private_key
+            creds_dict = copy.deepcopy(st.secrets["gcp_service_account"])
             creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
             st.write("✅ Loaded credentials from Streamlit Secrets")
         else:
