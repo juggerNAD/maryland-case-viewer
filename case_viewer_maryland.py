@@ -3,18 +3,22 @@ import pandas as pd
 import datetime
 import re
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2 import service_account
 
 # ---------- CONFIG ----------
 SHEET_ID = "1GCbpfhxqu8G4jYNn_jRKWdAvvw2wal5w0nsnRFUNNfA"
 SHEET_NAME = "Sheet1"
-SERVICE_ACCOUNT_FILE = "service_account.json"
 ALLOWED_CASE_STATUSES = ["Entered", "Renewed", "Unsatisfied"]
 
 # ---------- UTIL ----------
 def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
     SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, SCOPE)
+    
+    # ✅ Load credentials from Streamlit Secrets
+    creds = service_account.Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"], scopes=SCOPE
+    )
+
     client = gspread.authorize(creds)
     sheet = client.open_by_key(sheet_id).worksheet(sheet_name)
     data = sheet.get_all_values()
@@ -113,7 +117,7 @@ type_select = st.sidebar.selectbox("Case Type", type_values, index=0)
 amount_opts = ["All", ">= $10,000", ">= $25,000", ">= $50,000", ">= $100,000"]
 amount_select = st.sidebar.selectbox("Judgment Amount", amount_opts, index=1)
 
-# Date Range with proper min/max
+# Date Range
 st.sidebar.subheader("Entry Date Range")
 start_date = st.sidebar.date_input(
     "Start",
@@ -138,13 +142,13 @@ def apply_filters(df):
     else:
         d["_amount_num"] = 0.0
 
-    # Entry date parsing (only if column exists)
+    # Entry date parsing
     if mapping.get("entry_date") and mapping["entry_date"] in d.columns:
         d["_entry_date_parsed"] = d[mapping["entry_date"]].apply(parse_date_flexible)
     else:
         d["_entry_date_parsed"] = None
 
-    # Case Status filter (case-insensitive)
+    # Case Status filter
     if status_select != "All" and mapping.get("case_status") and mapping["case_status"] in d.columns:
         selected_status = status_select.strip().lower()
         d = d[d[mapping["case_status"]] == selected_status]
@@ -194,7 +198,7 @@ def apply_filters(df):
 
     return d_display
 
-# ---------- APPLY FILTERS BUTTON ----------
+# ---------- APPLY FILTERS ----------
 if st.sidebar.button("Apply Filters"):
     filtered_df = apply_filters(df)
     st.write(f"Records Found: {len(filtered_df)}")
