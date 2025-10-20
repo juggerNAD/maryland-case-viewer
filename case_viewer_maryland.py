@@ -32,7 +32,6 @@ CASE_TYPES = [
 # ---------- UTIL ----------
 def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
     try:
-        # Convert immutable secrets to a normal dict
         creds_dict = dict(st.secrets["gcp_service_account"])
         creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
         creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
@@ -132,10 +131,24 @@ type_select = st.sidebar.selectbox("Case Type", type_values, index=0)
 amount_opts = ["All", ">= $10,000", ">= $25,000", ">= $50,000", ">= $100,000"]
 amount_select = st.sidebar.selectbox("Judgment Amount", amount_opts, index=1)
 
-# Date Range
+# ---------- DATE RANGE (Updated to allow 2014) ----------
 st.sidebar.subheader("Entry Date Range")
-start_date = st.sidebar.date_input("Start", datetime.date(2014, 1, 1))
-end_date = st.sidebar.date_input("End", datetime.date.today())
+min_allowed_date = datetime.date(2014, 1, 1)
+max_allowed_date = datetime.date.today()
+
+start_date = st.sidebar.date_input(
+    "Start",
+    value=min_allowed_date,
+    min_value=min_allowed_date,
+    max_value=max_allowed_date
+)
+
+end_date = st.sidebar.date_input(
+    "End",
+    value=max_allowed_date,
+    min_value=min_allowed_date,
+    max_value=max_allowed_date
+)
 
 # ---------- FILTER LOGIC ----------
 def apply_filters(df):
