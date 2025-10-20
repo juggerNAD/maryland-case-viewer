@@ -20,6 +20,7 @@ def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
     try:
         # Load credentials directly from Streamlit Secrets
         creds_dict = st.secrets["gcp_service_account"]
+        # Convert literal \n to actual newlines
         creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
         creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
         client = gspread.authorize(creds)
