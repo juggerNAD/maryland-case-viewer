@@ -5,6 +5,7 @@ import re
 import gspread
 from google.oauth2 import service_account
 import json
+import copy
 
 # ---------- CONFIG ----------
 SHEET_ID = "1GCbpfhxqu8G4jYNn_jRKWdAvvw2wal5w0nsnRFUNNfA"
@@ -17,11 +18,7 @@ def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive"
     ]
-
-    import copy
-
     try:
-        # Load credentials from Streamlit Secrets or local file
         if "gcp_service_account" in st.secrets:
             creds_dict = copy.deepcopy(st.secrets["gcp_service_account"])
             creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
@@ -39,18 +36,12 @@ def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
         df = pd.DataFrame(data[1:], columns=data[0])
         return df
 
-    except gspread.SpreadsheetNotFound:
-        st.error("❌ Google Sheet not found. Check SHEET_ID and permissions.")
-        return pd.DataFrame()  # Return empty dataframe
-
     except Exception as e:
         st.error(f"❌ Error loading Google Sheet: {e}")
-        return pd.DataFrame()  # Return empty dataframe
-
+        st.stop()
 
 def normalize_columns(cols):
     return [c.strip().lower().replace("\n", " ").replace(" ", "_") for c in cols]
-
 
 def parse_amount(s):
     if pd.isna(s):
@@ -60,7 +51,6 @@ def parse_amount(s):
         return float(s)
     except:
         return 0.0
-
 
 def parse_date_flexible(v):
     if pd.isna(v):
@@ -81,7 +71,6 @@ def parse_date_flexible(v):
         return tmp.date()
     except:
         return None
-
 
 def load_and_map():
     df = download_sheet_csv(SHEET_ID, SHEET_NAME)
@@ -107,11 +96,10 @@ def load_and_map():
             mapping["address"] = c
     return df, mapping
 
-
 # ---------- LOAD DATA ----------
 df, mapping = load_and_map()
 
-# Normalize case_status column for consistent filtering
+# Normalize case_status column
 if mapping.get("case_status") and mapping["case_status"] in df.columns:
     df[mapping["case_status"]] = df[mapping["case_status"]].astype(str).str.strip().str.lower()
 
@@ -129,15 +117,15 @@ status_select = st.sidebar.selectbox("Case Status", status_values, index=0)
 # Court System
 court_values = ["All"]
 if mapping.get("court_system") and mapping["court_system"] in df.columns:
-    vals = sorted(df[mapping["court_system"]].dropna().astype(str).unique().tolist())
-    court_values += vals
+    vals = df[mapping["court_system"]].dropna().astype(str).str.strip().unique()
+    court_values += sorted(vals)
 court_select = st.sidebar.selectbox("Court System", court_values, index=0)
 
 # Case Type
 type_values = ["All"]
 if mapping.get("case_type") and mapping["case_type"] in df.columns:
-    vals = sorted(df[mapping["case_type"]].dropna().astype(str).unique().tolist())
-    type_values += vals
+    vals = df[mapping["case_type"]].dropna().astype(str).str.strip().unique()
+    type_values += sorted(vals)
 type_select = st.sidebar.selectbox("Case Type", type_values, index=0)
 
 # Judgment Amount
@@ -146,19 +134,12 @@ amount_select = st.sidebar.selectbox("Judgment Amount", amount_opts, index=1)
 
 # Date Range
 st.sidebar.subheader("Entry Date Range")
-start_date = st.sidebar.date_input(
-    "Start",
-    value=datetime.date(2014, 1, 1),
-    min_value=datetime.date(2000, 1, 1),
-    max_value=datetime.date.today()
-)
-end_date = st.sidebar.date_input(
-    "End",
-    value=datetime.date.today(),
-    min_value=datetime.date(2014, 1, 1),
-    max_value=datetime.date.today()
-)
-
+start_date = st.sidebar.date_input("Start", value=datetime.date(2014, 1, 1),
+                                   min_value=datetime.date(2000, 1, 1),
+                                   max_value=datetime.date.today())
+end_date = st.sidebar.date_input("End", value=datetime.date.today(),
+                                 min_value=datetime.date(2014, 1, 1),
+                                 max_value=datetime.date.today())
 
 # ---------- FILTER LOGIC ----------
 def apply_filters(df):
@@ -203,7 +184,8 @@ def apply_filters(df):
 
     # Format table
     display_cols = []
-    order = ["case_number", "case_status", "judgment_amount", "entry_date", "court_system", "case_type", "address", "case_link"]
+    order = ["case_number", "case_status", "judgment_amount", "entry_date", 
+             "court_system", "case_type", "address", "case_link"]
     for k in order:
         if mapping.get(k) and mapping[k] in d.columns:
             display_cols.append(mapping[k])
@@ -212,14 +194,15 @@ def apply_filters(df):
 
     # Format judgment amount
     if "judgment_amount" in mapping and mapping.get("judgment_amount") in d_display.columns:
-        d_display[mapping["judgment_amount"]] = d_display[mapping["judgment_amount"]].apply(lambda x: f"${parse_amount(x):,.2f}")
+        d_display[mapping["judgment_amount"]] = d_display[mapping["judgment_amount"]].apply(
+            lambda x: f"${parse_amount(x):,.2f}"
+        )
 
-    # Format entry date (FIXED: no recursion)
+    # Format entry date safely
     if "entry_date" in mapping and mapping.get("entry_date") in d_display.columns:
-        def format_date(x):
-            dt = parse_date_flexible(x)
-            return dt.strftime("%Y-%m-%d") if dt else ""
-        d_display[mapping["entry_date"]] = d_display[mapping["entry_date"]].apply(format_date)
+        d_display[mapping["entry_date"]] = d_display[mapping["entry_date"]].apply(
+            lambda x: x.strftime("%Y-%m-%d") if isinstance(x, (datetime.date, datetime.datetime)) else str(x)
+        )
 
     # Format case link
     if "case_link" in mapping and mapping.get("case_link") in d_display.columns:
@@ -228,7 +211,6 @@ def apply_filters(df):
         )
 
     return d_display
-
 
 # ---------- APPLY FILTERS ----------
 if st.sidebar.button("Apply Filters"):
