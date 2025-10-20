@@ -202,9 +202,10 @@ def apply_filters(df):
 
     # Format entry date
     if mapping.get("entry_date") in d_display.columns:
-        d_display[mapping["entry_date"]] = d_display[mapping["entry_date"]].apply(
-            lambda x: parse_date_flexible(x).strftime("%Y-%m-%d") if parse_date_flexible(x) else ""
-        )
+        def format_date(x):
+            dt = parse_date_flexible(x)
+            return dt.strftime("%Y-%m-%d") if dt else ""
+        d_display[mapping["entry_date"]] = d_display[mapping["entry_date"]].apply(format_date)
 
     # Format case link
     if mapping.get("case_link") in d_display.columns:
