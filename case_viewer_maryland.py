@@ -35,7 +35,6 @@ def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
         # Convert immutable secrets to a normal dict
         creds_dict = dict(st.secrets["gcp_service_account"])
         creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
-        
         creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
         client = gspread.authorize(creds)
 
