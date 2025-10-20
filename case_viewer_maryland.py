@@ -4,6 +4,7 @@ import datetime
 import re
 import gspread
 from google.oauth2 import service_account
+import copy
 
 # ---------- CONFIG ----------
 SHEET_ID = "1GCbpfhxqu8G4jYNn_jRKWdAvvw2wal5w0nsnRFUNNfA"
@@ -18,12 +19,16 @@ SCOPE = [
 
 def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
     try:
-        # Load credentials directly from Streamlit Secrets
-        creds_dict = st.secrets["gcp_service_account"]
-        # Convert literal \n to actual newlines
-        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
-        creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
-        client = gspread.authorize(creds)
+        if "gcp_service_account" in st.secrets:
+            # Make a deep copy so we do NOT modify st.secrets directly
+            creds_dict = copy.deepcopy(st.secrets["gcp_service_account"])
+            # Convert literal \n to actual newlines
+            creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+            creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
+            client = gspread.authorize(creds)
+        else:
+            st.error("❌ GCP Service Account not found in Streamlit Secrets.")
+            st.stop()
 
         sheet = client.open_by_key(sheet_id).worksheet(sheet_name)
         data = sheet.get_all_values()
