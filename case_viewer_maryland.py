@@ -42,6 +42,7 @@ def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
         st.error(f"❌ Error loading Google Sheet: {e}")
         st.stop()
 
+
 def normalize_columns(cols):
     return [c.strip().lower().replace("\n", " ").replace(" ", "_") for c in cols]
 
@@ -208,11 +209,12 @@ def apply_filters(df):
     if "judgment_amount" in mapping and mapping.get("judgment_amount") in d_display.columns:
         d_display[mapping["judgment_amount"]] = d_display[mapping["judgment_amount"]].apply(lambda x: f"${parse_amount(x):,.2f}")
 
-    # Format entry date
+    # Format entry date (FIXED: no recursion)
     if "entry_date" in mapping and mapping.get("entry_date") in d_display.columns:
-        d_display[mapping["entry_date"]] = d_display[mapping["entry_date"]].apply(
-            lambda x: parse_date_flexible(x).strftime("%Y-%m-%d") if parse_date_flexible(x) else ""
-        )
+        def format_date(x):
+            dt = parse_date_flexible(x)
+            return dt.strftime("%Y-%m-%d") if dt else ""
+        d_display[mapping["entry_date"]] = d_display[mapping["entry_date"]].apply(format_date)
 
     # Format case link
     if "case_link" in mapping and mapping.get("case_link") in d_display.columns:
