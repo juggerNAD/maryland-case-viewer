@@ -21,6 +21,7 @@ def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
     import copy
 
     try:
+        # Load credentials from Streamlit Secrets or local file
         if "gcp_service_account" in st.secrets:
             creds_dict = copy.deepcopy(st.secrets["gcp_service_account"])
             creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
@@ -38,9 +39,13 @@ def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
         df = pd.DataFrame(data[1:], columns=data[0])
         return df
 
+    except gspread.SpreadsheetNotFound:
+        st.error("❌ Google Sheet not found. Check SHEET_ID and permissions.")
+        return pd.DataFrame()  # Return empty dataframe
+
     except Exception as e:
         st.error(f"❌ Error loading Google Sheet: {e}")
-        st.stop()
+        return pd.DataFrame()  # Return empty dataframe
 
 
 def normalize_columns(cols):
