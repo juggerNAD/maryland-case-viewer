@@ -18,19 +18,32 @@ def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
         "https://www.googleapis.com/auth/drive"
     ]
 
-    # ✅ Try Streamlit Secrets first, then local file fallback
     try:
+        # Load credentials
         if "gcp_service_account" in st.secrets:
             creds_dict = st.secrets["gcp_service_account"]
+            # ✅ Fix private key newlines for Streamlit Secrets
+            creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
             st.write("✅ Loaded credentials from Streamlit Secrets")
         else:
             with open("service_account.json", "r") as f:
                 creds_dict = json.load(f)
+            # ✅ Fix local JSON newlines
+            creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
             st.write("✅ Loaded local service_account.json")
 
+        # Create credentials and authorize
         creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
         client = gspread.authorize(creds)
+
+        # ✅ Debug: confirm sheet ID
+        st.write("Attempting to open sheet with ID:", sheet_id)
+
+        # Open the sheet
         sheet = client.open_by_key(sheet_id).worksheet(sheet_name)
+        st.write("✅ Sheet loaded:", sheet.title)
+
+        # Load data into DataFrame
         data = sheet.get_all_values()
         df = pd.DataFrame(data[1:], columns=data[0])
         return df
@@ -38,7 +51,6 @@ def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
     except Exception as e:
         st.error(f"❌ Error loading Google Sheet: {e}")
         st.stop()
-
 
 def normalize_columns(cols):
     return [c.strip().lower().replace("\n", " ").replace(" ", "_") for c in cols]
