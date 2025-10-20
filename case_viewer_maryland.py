@@ -13,7 +13,7 @@ ALLOWED_CASE_STATUSES = ["Entered", "Renewed", "Unsatisfied"]
 # ---------- UTIL ----------
 def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
     SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    
+
     # ✅ Load credentials from Streamlit Secrets
     creds = service_account.Credentials.from_service_account_info(
         st.secrets["gcp_service_account"], scopes=SCOPE
