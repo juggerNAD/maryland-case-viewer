@@ -19,24 +19,21 @@ def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
     ]
 
     try:
-        # Load credentials
+        # ✅ Load credentials from Streamlit Secrets or local JSON
         if "gcp_service_account" in st.secrets:
-            creds_dict = st.secrets["gcp_service_account"].copy()  # ✅ copy before modifying
-            creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+            creds_dict = st.secrets["gcp_service_account"]  # ← use directly
             st.write("✅ Loaded credentials from Streamlit Secrets")
         else:
             with open("service_account.json", "r") as f:
                 creds_dict = json.load(f)
-            creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
             st.write("✅ Loaded local service_account.json")
 
-        # Authorize and load sheet
+        # Authorize gspread
         creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
         client = gspread.authorize(creds)
-        st.write("Attempting to open sheet with ID:", sheet_id)
-        sheet = client.open_by_key(sheet_id).worksheet(sheet_name)
-        st.write("✅ Sheet loaded:", sheet.title)
 
+        # Open the sheet
+        sheet = client.open_by_key(sheet_id).worksheet(sheet_name)
         data = sheet.get_all_values()
         df = pd.DataFrame(data[1:], columns=data[0])
         return df
