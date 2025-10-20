@@ -5,6 +5,12 @@ import re
 import gspread
 from google.oauth2 import service_account
 
+# ---------- GOOGLE SHEETS SCOPES ----------
+SCOPE = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive"
+]
+
 # ---------- CONFIG ----------
 SHEET_ID = "1GCbpfhxqu8G4jYNn_jRKWdAvvw2wal5w0nsnRFUNNfA"
 SHEET_NAME = "Sheet1"
@@ -25,16 +31,22 @@ CASE_TYPES = [
 
 # ---------- UTIL ----------
 def download_sheet_csv(sheet_id, sheet_name=SHEET_NAME):
-    SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_dict = st.secrets["gcp_service_account"].copy()
-    # Convert literal \n to actual newlines
-    creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
-    creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
-    client = gspread.authorize(creds)
-    sheet = client.open_by_key(sheet_id).worksheet(sheet_name)
-    data = sheet.get_all_values()
-    df = pd.DataFrame(data[1:], columns=data[0])
-    return df
+    try:
+        # Convert immutable secrets to a normal dict
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+        
+        creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
+        client = gspread.authorize(creds)
+
+        sheet = client.open_by_key(sheet_id).worksheet(sheet_name)
+        data = sheet.get_all_values()
+        df = pd.DataFrame(data[1:], columns=data[0])
+        return df
+
+    except Exception as e:
+        st.error(f"❌ Error loading Google Sheet: {e}")
+        st.stop()
 
 def normalize_columns(cols):
     return [c.strip().lower().replace("\n", " ").replace(" ", "_") for c in cols]
