@@ -18,7 +18,7 @@ SCOPE = [
 
 CASE_TYPES = [
     "Civil - General", "Civil - Foreclosure", "Civil - Contract", "Judgment - Monetary", "Lien / Judgment",
-    "Paternity", "Judgment - District Court Lien", "Domestic Relations (Divorce)",
+    "Paternity", "Right of Redemption", "Judgment - District Court Lien", "Domestic Relations (Divorce)",
     "Judgment - State Tax Lien", "Civil - Tort / Contract", "Paternity / Parentage - Private",
     "Criminal", "Judgment - Restitution", "Divorce - Absolute", "Foreclosure - Residential",
     "Contract - Breach", "URESA / UIFSA", "Guardianship - Minor Person and Property",
