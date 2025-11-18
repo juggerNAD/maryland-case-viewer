@@ -8,7 +8,7 @@ from google.oauth2 import service_account
 # ---------- CONFIG ----------
 SHEET_ID = "1GCbpfhxqu8G4jYNn_jRKWdAvvw2wal5w0nsnRFUNNfA"
 SHEET_NAME = "Sheet1"
-ALLOWED_CASE_STATUSES = ["Entered", "Renewed", "Unsatisfied"]
+ALLOWED_CASE_STATUSES = ["Entered", "Renewed", "Unsatisfied", "Open"]
 
 # ---------- GOOGLE SHEETS SCOPES ----------
 SCOPE = [
