@@ -201,8 +201,11 @@ def apply_filters(df):
             d = d[d["_entry_date_parsed"].apply(lambda x: x is not None and x <= end_date)]
 
     display_cols = []
-    order = ["case_number", "plaintiff", "case_status", "judgment_amount", "entry_date",
-             "court_system", "case_type", "address", "case_link"]
+    order = [
+    "case_number", "plaintiff", "case_status", "judgment_amount",
+    "entry_date", "court_system", "case_type", "county", "address",
+    "case_link"
+    ]
     for k in order:
         if mapping.get(k) and mapping[k] in d.columns:
             display_cols.append(mapping[k])
