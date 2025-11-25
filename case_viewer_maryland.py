@@ -230,3 +230,9 @@ def apply_filters(df):
         )
 
     return d_display
+    
+# ---------- APPLY FILTER BUTTON BACK ----------
+if st.sidebar.button("Apply Filters"):
+    filtered_df = apply_filters(df)
+    st.markdown("### 📄 Filtered Results")
+    st.write(filtered_df.to_html(escape=False), unsafe_allow_html=True)
