@@ -98,6 +98,9 @@ def load_and_map():
             mapping["case_link"] = c
         if "address" in c:
             mapping["address"] = c
+        # 👇 AUTO-MAP COUNTY COLUMN
+        if "county" in c:
+            mapping["county"] = c
         if "plaintiff" in c or "name_for" in c:
             mapping["plaintiff"] = c
     return df, mapping
@@ -130,6 +133,18 @@ type_select = st.sidebar.selectbox("Case Type", type_values, index=0)
 # Judgment Amount
 amount_opts = ["All", ">= $10,000", ">= $25,000", ">= $50,000", ">= $100,000"]
 amount_select = st.sidebar.selectbox("Judgment Amount", amount_opts, index=1)
+
+# ---------- COUNTY DROPDOWN (ADDED) ----------
+maryland_counties = [
+    "All",
+    "Allegany", "Anne Arundel", "Baltimore County", "Baltimore City", "Calvert",
+    "Caroline", "Carroll", "Cecil", "Charles", "Dorchester", "Frederick",
+    "Garrett", "Harford", "Howard", "Kent", "Montgomery", "Prince George's",
+    "Queen Anne's", "Somerset", "St. Mary's", "Talbot", "Washington",
+    "Wicomico", "Worcester"
+]
+
+county_select = st.sidebar.selectbox("County", maryland_counties, index=0)
 
 # ---------- DATE RANGE (Updated to allow 2014) ----------
 st.sidebar.subheader("Entry Date Range")
@@ -175,6 +190,10 @@ def apply_filters(df):
         val = int(re.sub(r"[^\d]", "", amount_select))
         d = d[d["_amount_num"] >= val]
 
+    # ---------- COUNTY FILTER (ADDED) ----------
+    if county_select != "All" and mapping.get("county"):
+        d = d[d[mapping["county"]].astype(str).str.strip().str.lower() == county_select.lower()]
+
     if "_entry_date_parsed" in d.columns:
         if start_date:
             d = d[d["_entry_date_parsed"].apply(lambda x: x is not None and x >= start_date)]
@@ -211,12 +230,3 @@ def apply_filters(df):
         )
 
     return d_display
-
-# ---------- APPLY FILTERS ----------
-if st.sidebar.button("Apply Filters"):
-    filtered_df = apply_filters(df)
-    st.write(f"Records Found: {len(filtered_df)}")
-    if not filtered_df.empty:
-        st.markdown(filtered_df.to_html(escape=False, index=False), unsafe_allow_html=True)
-    else:
-        st.warning("No records found matching your filters.")
